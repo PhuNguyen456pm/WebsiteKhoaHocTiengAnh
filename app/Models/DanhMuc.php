@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class DanhMuc extends Model
 {
+    use HasFactory;
+
+    protected $table = 'danhmuc';
+    protected $primaryKey = 'id_danhmuc';
+    protected $fillable = ['ten_danhmuc', 'id_admin'];
+    public $timestamps = false;
     public function admin()
     {
         return $this->belongsTo(Admin::class, 'id_admin');

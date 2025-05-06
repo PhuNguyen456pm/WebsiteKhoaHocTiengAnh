@@ -2,6 +2,7 @@
 
 @section('content')
 <div class="container-fluid p-0">
+    <!-- Thông báo -->
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
@@ -14,8 +15,9 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
+
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="{{ url('/') }}">Website Học Tiếng Anh</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,7 +26,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle text-white" href="#" id="accountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle"></i> 
                             @if(Session::has('hocvien_username'))
                                 {{ Session::get('hocvien_username') }}
@@ -34,7 +36,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
                             @if(Session::has('hocvien_id'))
-                                <li><a class="dropdown-item" href="{{ route('hocvien.update') }}">Cập nhật thông tin tài khoản học viên</a></li>
+                                <li><a class="dropdown-item" href="{{ route('hocvien.update') }}">Cập nhật thông tin</a></li>
                                 <li><a class="dropdown-item" href="{{ route('hocvien.logout') }}">Đăng xuất</a></li>
                             @else
                                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng nhập</a></li>
@@ -48,45 +50,70 @@
     </nav>
 
     <!-- Hero Section -->
-    <div class="bg-primary text-white text-center py-5">
-        <h1>Chào mừng đến với Website Học Tiếng Anh</h1>
-        <p>Học tiếng Anh dễ dàng, hiệu quả với các khóa học chất lượng cao!</p>
-        <a href="#courses" class="btn btn-light btn-lg">Xem khóa học</a>
+    <div class="hero-section text-white text-center py-5" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3'); background-size: cover; background-position: center;">
+        <div class="container">
+            <h1 class="display-4">Học Tiếng Anh Hiệu Quả</h1>
+            <p class="lead">Khám phá các khóa học chất lượng cao, được thiết kế bởi các giảng viên hàng đầu!</p>
+            <a href="#courses" class="btn btn-primary btn-lg mt-3">Khám phá ngay</a>
+        </div>
+    </div>
+
+    <!-- Danh mục khóa học -->
+    <div class="container my-5">
+        <h2 class="text-center mb-4">Danh sách các môn học</h2>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            @forelse($danhmucs as $danhmuc)
+                <a href="{{ route('khoahoc.by.category', $danhmuc->id_danhmuc) }}" class="btn btn-outline-primary">{{ $danhmuc->ten_danhmuc }}</a>
+            @empty
+                <p class="text-center">Chưa có danh mục nào.</p>
+            @endforelse
+        </div>
     </div>
 
     <!-- Courses Section -->
     <div class="container my-5" id="courses">
-        <h2 class="text-center mb-4">Khóa học nổi bật</h2>
+        <h2 class="text-center mb-4">Combo đặc biệt</h2>
         <div class="row">
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Tiếng Anh Giao Tiếp</h5>
-                        <p class="card-text">Học cách giao tiếp tiếng Anh tự nhiên, lưu loát.</p>
-                        <a href="#" class="btn btn-primary">Xem chi tiết</a>
+            @forelse($khoahocs as $khoahoc)
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        @if($khoahoc->hinhanh_khoahoc)
+                            <img src="{{ asset('storage/' . $khoahoc->hinhanh_khoahoc) }}" class="card-img-top" alt="{{ $khoahoc->ten_khoahoc }}" style="height: 200px; object-fit: cover;">
+                        @else
+                            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Placeholder">
+                        @endif
+                        <div class="card-body">
+                            <h5 class="card-title">{{ $khoahoc->ten_khoahoc }}</h5>
+                            <p class="card-text text-muted">
+                                {{ Str::limit($khoahoc->mota_khoahoc, 100) }}<br>
+                                Giá: {{ number_format($khoahoc->gia_khoahoc, 0, ',', '.') }} VNĐ
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-warning">★★★★☆ (123)</span>
+                                <a href="{{ route('khoahoc.show', $khoahoc->id_khoahoc) }}" class="btn btn-primary">Xem chi tiết</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Luyện Thi IELTS</h5>
-                        <p class="card-text">Chuẩn bị kỹ lưỡng để đạt điểm cao trong kỳ thi IELTS.</p>
-                        <a href="#" class="btn btn-primary">Xem chi tiết</a>
-                    </div>
+            @empty
+                <div class="col-12 text-center">
+                    <p>Chưa có khóa học nào.</p>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Tiếng Anh Trẻ Em</h5>
-                        <p class="card-text">Khóa học vui nhộn, phù hợp cho trẻ từ 6-12 tuổi.</p>
-                        <a href="#" class="btn btn-primary">Xem chi tiết</a>
-                    </div>
-                </div>
-            </div>
+            @endforelse
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4">
+        <div class="container">
+            <p>&copy; 2025 Website Học Tiếng Anh. All Rights Reserved.</p>
+            <p>
+                <a href="#" class="text-white mx-2">Liên hệ</a> |
+                <a href="#" class="text-white mx-2">Điều khoản sử dụng</a> |
+                <a href="#" class="text-white mx-2">Chính sách bảo mật</a>
+            </p>
+        </div>
+    </footer>
 
     <!-- Login Modal -->
     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
@@ -180,4 +207,27 @@
         </div>
     </div>
 </div>
+
+<style>
+.hero-section {
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.card:hover {
+    transform: translateY(-5px);
+    transition: transform 0.3s ease;
+}
+.card-img-top {
+    border-bottom: 1px solid #e0e0e0;
+}
+.btn-outline-primary:hover {
+    background-color: #007bff;
+    color: white;
+}
+.card-body .text-warning {
+    font-size: 0.9rem;
+}
+</style>
 @endsection

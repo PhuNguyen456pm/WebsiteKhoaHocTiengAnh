@@ -4,6 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\HocVien;
+use App\Models\Khoahoc;
+use App\Models\DanhMuc;
+use App\Models\DangKyKhoahoc;
+use App\Models\BaiHoc;
+use App\Models\BaiKiemTra;
+use App\Models\ChiTietLamBai;
+use App\Models\TaiLieu;
+use App\Models\HoiDap;
+use App\Models\GiangVien;
+
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Session;
@@ -12,8 +22,127 @@ class HocVienController extends Controller
 {
     public function index()
     {
-        return view('welcome');
+        // Lấy tất cả danh mục
+        $danhmucs = DanhMuc::all();
+        
+        // Lấy 6 khóa học bất kỳ
+        $khoahocs = Khoahoc::with('danhMuc', 'giangVien')
+            ->take(6)
+            ->get();
+
+        return view('welcome', compact('danhmucs', 'khoahocs'));
     }
+    public function showKhoahoc($id)
+    {
+        // Lấy thông tin khóa học theo ID
+        $khoahoc = Khoahoc::with('danhMuc', 'giangVien', 'baiHocs')->findOrFail($id);
+
+        return view('khoahoc_detail', compact('khoahoc'));
+    }
+    public function indexByCategory($id)
+    {
+        // Lấy tất cả danh mục
+        $danhmucs = DanhMuc::all();
+        
+        // Lấy khóa học thuộc danh mục cụ thể
+        $khoahocs = Khoahoc::with('danhMuc', 'giangVien')
+            ->where('id_danhmuc', $id)
+            ->get();
+
+        return view('welcome', compact('danhmucs', 'khoahocs'));
+    }
+    public function registerCourse($id)
+    {
+        if (!Session::has('hocvien_id')) {
+            return redirect('/')->with('error', 'Vui lòng đăng nhập để đăng ký khóa học.');
+        }
+
+        $khoahoc = Khoahoc::findOrFail($id);
+        $hocvien = HocVien::find(Session::get('hocvien_id'));
+
+        // Kiểm tra xem học viên đã đăng ký khóa học này chưa
+        $existingRegistration = DangKyKhoahoc::where('id_khoahoc', $id)
+            ->where('id_hocvien', $hocvien->id_hocvien)
+            ->first();
+
+        if ($existingRegistration) {
+            return redirect('/')->with('error', 'Bạn đã đăng ký khóa học này.');
+        }
+
+        return view('register_course', compact('khoahoc', 'hocvien'));
+    }
+
+    public function submitRegisterCourse(Request $request, $id)
+    {
+        if (!Session::has('hocvien_id')) {
+            return redirect('/')->with('error', 'Vui lòng đăng nhập để đăng ký khóa học.');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'address' => ['required', 'string', 'max:255'],
+            'payment_method' => ['required', 'string', 'in:Bank Card,Credit Card'],
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        Session::put('registration_data', [
+            'address' => $request->input('address'),
+            'payment_method' => $request->input('payment_method'),
+            'khoahoc_id' => $id,
+        ]);
+
+        return redirect()->route('confirm.payment', $id);
+    }
+
+    public function confirmPayment($id)
+    {
+        if (!Session::has('hocvien_id') || !Session::has('registration_data')) {
+            return redirect('/')->with('error', 'Thông tin đăng ký không hợp lệ.');
+        }
+
+        $registrationData = Session::get('registration_data');
+        if ($registrationData['khoahoc_id'] != $id) {
+            return redirect('/')->with('error', 'Dữ liệu không hợp lệ.');
+        }
+
+        $khoahoc = Khoahoc::findOrFail($id);
+        $hocvien = HocVien::find(Session::get('hocvien_id'));
+
+        return view('confirm_payment', compact('khoahoc', 'hocvien', 'registrationData'));
+    }
+
+    public function submitPayment($id)
+    {
+        if (!Session::has('hocvien_id') || !Session::has('registration_data')) {
+            return redirect('/')->with('error', 'Thông tin đăng ký không hợp lệ.');
+        }
+
+        $registrationData = Session::get('registration_data');
+        if ($registrationData['khoahoc_id'] != $id) {
+            return redirect('/')->with('error', 'Dữ liệu không hợp lệ.');
+        }
+
+        $khoahoc = Khoahoc::findOrFail($id);
+        $hocvienId = Session::get('hocvien_id');
+
+        // Tạo bản ghi đăng ký khóa học
+        DangKyKhoahoc::create([
+            'thoigian_thanhtoan' => now(),
+            'trangthai_thanhtoan' => 'Đã thanh toán',
+            'phuongthuc_thanhtoan' => $registrationData['payment_method'],
+            'tong_tien' => $khoahoc->gia_khoahoc,
+            'id_khoahoc' => $id,
+            'id_hocvien' => $hocvienId,
+        ]);
+
+        // Xóa session sau khi hoàn tất
+        Session::forget('registration_data');
+
+        return redirect('/')->with('success', 'Đăng ký và thanh toán thành công!');
+    }
+
 
     public function register(Request $request)
     {
